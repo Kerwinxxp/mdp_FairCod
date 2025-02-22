@@ -5,11 +5,13 @@ import collections
 import random
 
 
-device = torch.device("cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class PolicyNet(torch.nn.Module):
     def __init__(self, stateDim,actionDim):  # 200 + 3 + 20, 6
         super(PolicyNet, self).__init__()
+        self.device = device  # 添加这一行
+
         self.stateDim = stateDim   # 骑手状态
         self.actionDim = actionDim  # 动作状态
         self.S = torch.nn.Linear(stateDim, 64).to(device)
@@ -53,6 +55,8 @@ class ValueNet(torch.nn.Module):
 
 class ActorCritic:
     def __init__(self, stateDim, actionDim, actorLr, criticLr, gamma, batchSize,device):
+        self.device = device
+
         self.actor = PolicyNet(stateDim,actionDim).to(device)
         self.critic = ValueNet(stateDim,actionDim).to(device)
         self.actorLr = actorLr
@@ -124,7 +128,7 @@ class ActorCritic:
         criticLoss = torch.mean(F.mse_loss(V, tdTarget.detach())).to(device)  # TD error
         tdDelta = tdTarget - V  # 时序差分误差 TD_error
 
-        logProb = torch.tensor([])
+        logProb = torch.tensor([], device=device)  # 修改这一行
         for i in range(self.batchSize):
             stateTwo = torch.tensor(state[i],dtype=torch.float).to(device)
             lP = torch.log(torch.softmax(self.actor(stateTwo), dim=0)[action[i]]).to(device)
